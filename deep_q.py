@@ -1,3 +1,9 @@
+"""
+Deep Q Network
+for open ai gym
+
+Written By: Nathan Burnham, nburn42@gmail.com
+"""
 import gym
 
 import tensorflow as tf
@@ -13,7 +19,7 @@ class NeuralNetwork:
         'LEARNING_RATE': 1e-2,
         'DISCOUNT_RATE': 0.95,
         'MEMORY_SIZE': 50000,
-        'BATCH_SIZE': 200
+        'BATCH_SIZE': 800
         }
 
     network_params = {
@@ -107,7 +113,7 @@ class NeuralNetwork:
         for i_episode in range(max_episode):
             obs = self.env.reset()
             score = 0
-            for t in range(1000):
+            for t in range(199):
                 if show_display and i_episode % 10 == 0:
                     self.env.render()
                 output = sess.run(self.layer_list[-1], feed_dict = {self.input_layer: [obs]})
@@ -179,13 +185,11 @@ def main():
     #game = "MountainCar-v0"
     game = "CartPole-v0"
     hidden_layer_list = [100,100]
-    env = gym.make(game)
+    #env = gym.make(game)
     env.monitor.start('/tmp/cartpole-experiment-1')
     nn = NeuralNetwork(env)
     nn.train(show_display=True)
-    env.monitor.close()
-
-    gym.upload('/tmp/cartpole-experiment-1', api_key='sk_eMxHbBf0Szeq6Z1LaPzg')
+    #env.monitor.close()
 
 if __name__ == "__main__":
     main()

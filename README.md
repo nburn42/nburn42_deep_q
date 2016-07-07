@@ -14,5 +14,5 @@ I have not yet optimized those parameters
 Code availible here:   
 https://github.com/nburn42/nburn42_deep_q   
 
-Me:   
+Nathan Burnham 
 nburn42@gmail.com   
