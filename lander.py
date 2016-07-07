@@ -8,12 +8,12 @@ def main():
     game = "LunarLander-v2"
     hidden_layer_list = [100,100]
     env = gym.make(game)
-    env.monitor.start('/tmp/lunar-lander-v2')
+    #env.monitor.start('/tmp/lunar-lander-v2')
     nn = deep_q.NeuralNetwork(env)
     nn.train(show_display=False, 
             max_episode = 20000, 
             max_step = 999)
-    env.monitor.close()
+    #env.monitor.close()
 
 if __name__ == "__main__":
     main()
