@@ -5,7 +5,7 @@ Network Description:
 2 relu hidden layers with 100 neurons each (overkill)   
 Adam optimizer with .01 learning rate   
 .95 Discount rate for Q Learning   
-a random chance of taking an expolritory action   
+a random chance of taking an exploratory action   
 chance decays over time   
 
 Note:   
