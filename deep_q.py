@@ -93,6 +93,7 @@ class NeuralNetwork:
         
     def train(self, 
             max_episode = 1000,
+            max_step = 199,
             sess = None,
             show_display = True):
         score = 0
@@ -113,7 +114,7 @@ class NeuralNetwork:
         for i_episode in range(max_episode):
             obs = self.env.reset()
             score = 0
-            for t in range(199):
+            for t in range(max_step):
                 if show_display and i_episode % 10 == 0:
                     self.env.render()
                 output = sess.run(self.layer_list[-1], feed_dict = {self.input_layer: [obs]})
@@ -185,8 +186,8 @@ def main():
     #game = "MountainCar-v0"
     game = "CartPole-v0"
     hidden_layer_list = [100,100]
-    #env = gym.make(game)
-    env.monitor.start('/tmp/cartpole-experiment-1')
+    env = gym.make(game)
+    #env.monitor.start('/tmp/cartpole-experiment-1')
     nn = NeuralNetwork(env)
     nn.train(show_display=True)
     #env.monitor.close()
