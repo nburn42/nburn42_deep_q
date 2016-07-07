@@ -14,5 +14,9 @@ I have not yet optimized those parameters
 Code availible here:   
 https://github.com/nburn42/nburn42_deep_q   
 
+reproducing should be as easy as running:
+python deep_q.py
+(assuming gym, box2d, tensorflow, and numpy are installed and you are using python2)
+
 Nathan Burnham 
 nburn42@gmail.com   
