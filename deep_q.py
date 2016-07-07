@@ -180,10 +180,12 @@ def main():
     game = "CartPole-v0"
     hidden_layer_list = [100,100]
     env = gym.make(game)
-    #env.monitor.start('/tmp/cartpole-experiment-1')
+    env.monitor.start('/tmp/cartpole-experiment-1')
     nn = NeuralNetwork(env)
     nn.train(show_display=True)
-    #env.monitor.close()
+    env.monitor.close()
+
+    gym.upload('/tmp/cartpole-experiment-1', api_key='sk_eMxHbBf0Szeq6Z1LaPzg')
 
 if __name__ == "__main__":
     main()
