@@ -21,7 +21,8 @@ class NeuralNetwork:
         'LEARNING_RATE': 1e-2,
         'DISCOUNT_RATE': 0.95,
         'MEMORY_SIZE': 50000,
-        'BATCH_SIZE': 800
+        'BATCH_SIZE': 800,
+        'DISPLAY_FREQ': 10
         }
 
     network_params = {
@@ -154,7 +155,7 @@ class NeuralNetwork:
             obs = self.env.reset()
             score = 0
             for t in range(max_step):
-                if show_display and i_episode % 10 == 0:
+                if show_display and i_episode % self.training_params["DISPLAY_FREQ"] == 0:
                     self.env.render()
                 output = sess.run(self.layer_list[-1], feed_dict = {self.input_layer: [obs]})
                 
@@ -214,7 +215,7 @@ class NeuralNetwork:
                         self.target_q_placeholder: target_q, 
                         self.chosen_q_mask_placeholder: chosen_q_mask})
             
-            if i_episode % 10 == 0:
+            if i_episode % self.training_params['DISPLAY_FREQ'] == 0:
                 self.summary_writer.add_summary(summary, i_episode)
             
                 # how did we do?
