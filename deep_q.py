@@ -15,15 +15,15 @@ class NeuralNetwork:
 
     training_params = {
         'INITIAL_RANDOM_CHANCE': 0.9,
-        'RANDOM_DECAY': 0.95,
+        'RANDOM_DECAY': 0.99,
         'LEARNING_RATE': 1e-2,
-        'DISCOUNT_RATE': 0.95,
-        'MEMORY_SIZE': 50000,
-        'BATCH_SIZE': 800
+        'DISCOUNT_RATE': .95,
+        'MEMORY_SIZE': 500000,
+        'BATCH_SIZE': 8000
         }
 
     network_params = {
-        'HIDDEN_LAYER_LIST': [100, 100],
+        'HIDDEN_LAYER_LIST': [100, 100, 100],
         'INITIAL_BIAS': 1e-3
         }
 
@@ -44,6 +44,7 @@ class NeuralNetwork:
 
         self.input_layer = tf.placeholder(tf.float32, [None, self.input_size])
         self.layer_list = [self.input_layer]
+        self.bias_list = []
         self.weight_list = []
         
         # build network
@@ -56,8 +57,7 @@ class NeuralNetwork:
                 weight = tf.Variable(tf.truncated_normal(
                     [layer_size, previous_size], stddev=0.1), 
                     name=("weights" + str(layer_number)))
-                bias = tf.Variable(tf.constant(
-                    self.network_params['INITIAL_BIAS'],
+                bias = tf.Variable(tf.zeros(
                     shape=[layer_size]), 
                     name=("bias" + str(layer_number)))
 
@@ -71,6 +71,7 @@ class NeuralNetwork:
                     self.Q = self.layer_list[-1]
 
                 self.weight_list.append(weight)
+                self.bias_list.append(bias)
 
         with tf.name_scope('Q_learning'):
             self.target_q_placeholder = tf.placeholder(tf.float32, [None])
@@ -86,6 +87,10 @@ class NeuralNetwork:
         with tf.name_scope('Weight_minimization'):
             for w in self.weight_list:
                 self.loss += 0.001 * tf.reduce_sum(tf.square(w))
+        
+        with tf.name_scope('Bias_minimization'):
+            for b in self.bias_list:
+                self.loss += 0.001 * tf.reduce_sum(tf.square(b))
 
         #Adam has a built in learnig rate decay
         self.train_node = tf.train.AdamOptimizer(
@@ -118,15 +123,21 @@ class NeuralNetwork:
                 if show_display and i_episode % 10 == 0:
                     self.env.render()
                 output = sess.run(self.layer_list[-1], feed_dict = {self.input_layer: [obs]})
-                
+
                 # start off with mostly random actions
                 # slowly take away the random actions
-                if random.random() > self.random_chance:
-                    action = output.argmax()
-                else: 
+                #if random.random() > self.random_chance:
+                if i_episode < 500 or i_episode % 10 == 1 \
+                        or np.random.random() < self.random_chance:
                     action = self.env.action_space.sample()
+                else: 
+                    action = output.argmax()
                   
                 newobs, reward, done, info = self.env.step(action)
+                if show_display and i_episode % 10 == 0:
+                    print "obs", newobs
+                    print "reward", reward
+                    print "q",output
 
                 score += reward
                 memory.append([obs, action, reward, newobs, done])
@@ -142,50 +153,54 @@ class NeuralNetwork:
             # slowly take away the random exploration
             self.random_chance *= self.training_params['RANDOM_DECAY']
 
+            if i_episode > 500:
+                # learn a batch of runs
+                batch_size = self.training_params['BATCH_SIZE']
+                selection = random.sample(memory, min(batch_size, len(memory)))
 
-            # learn a batch of runs
-            batch_size = self.training_params['BATCH_SIZE']
-            selection = random.sample(memory, min(batch_size, len(memory)))
-
-            inputs = np.array([r[0] for r in selection])
-            
-            newobs_list = np.array([r[3] for r in selection])
-            next_q_value = sess.run(self.Q, feed_dict = {self.input_layer: newobs_list}).max(axis=1)
-            
-            chosen_q_mask = np.zeros((len(selection), self.output_size))
-            target_q = np.zeros((len(selection)))
-            for i, run in enumerate(selection):
-                obs, action, reward, newobs, done = run
+                inputs = np.array([r[0] for r in selection])
                 
-                chosen_q_mask[i][action] = 1.
+                newobs_list = np.array([r[3] for r in selection])
+                test = sess.run(self.Q, 
+                        feed_dict = {self.input_layer: newobs_list})
+                next_q_value = sess.run(self.Q, 
+                        feed_dict = {self.input_layer: newobs_list}
+                        ).max(axis=1)
                 
-                # Q learning update step 
-                # Q_now = reward + (discout * future_Q)
-                target_q[i] = reward 
-                if not done:
-                    # no future Q if action was terminal
-                    target_q[i] += (
-                            self.training_params['DISCOUNT_RATE']
-                            * next_q_value[i])
+                chosen_q_mask = np.zeros((len(selection), self.output_size))
+                target_q = np.zeros((len(selection)))
+                for i, run in enumerate(selection):
+                    obs, action, reward, newobs, done = run
+                    
+                    chosen_q_mask[i][action] = 1.
+                    
+                    # Q learning update step 
+                    # Q_now = reward + (discout * future_Q)
+                    target_q[i] = reward 
+                    if not done:
+                        # no future Q if action was terminal
+                        target_q[i] += max(-2**29, min(2**29,
+                                self.training_params['DISCOUNT_RATE']
+                                * next_q_value[i]))
+                
+                #print inputs
+                _, summary = sess.run([self.train_node, self.summary], 
+                        feed_dict={
+                            self.input_layer: inputs, 
+                            self.target_q_placeholder: target_q, 
+                            self.chosen_q_mask_placeholder: chosen_q_mask})
             
-            #print inputs
-            _, summary = sess.run([self.train_node, self.summary], 
-                    feed_dict={
-                        self.input_layer: inputs, 
-                        self.target_q_placeholder: target_q, 
-                        self.chosen_q_mask_placeholder: chosen_q_mask})
+                if i_episode % 10 == 0:
+                    self.summary_writer.add_summary(summary, i_episode)
             
             if i_episode % 10 == 0:
-                self.summary_writer.add_summary(summary, i_episode)
-            
                 # how did we do?
-                print "Episode ", i_episode, "\tScore ", score
+                print "Episode ", i_episode, "\tScore ", score, "\tRandom ", self.random_chance
 
 def main():
     #game = "Acrobot-v0"
     #game = "MountainCar-v0"
     game = "CartPole-v0"
-    hidden_layer_list = [100,100]
     env = gym.make(game)
     #env.monitor.start('/tmp/cartpole-experiment-1')
     nn = NeuralNetwork(env)
