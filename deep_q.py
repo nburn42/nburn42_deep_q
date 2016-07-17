@@ -11,6 +11,8 @@ import numpy as np
 
 import random
 
+
+
 class NeuralNetwork:
 
     training_params = {
@@ -23,9 +25,30 @@ class NeuralNetwork:
         }
 
     network_params = {
-        'HIDDEN_LAYER_LIST': [100, 100],
+        'CONV_LAYER_LIST': [[[5,5],32], [[5,5],32]],
+        'RELU_LAYER_LIST': [100, 100],
         'INITIAL_BIAS': 1e-3
         }
+
+
+    def make_weights(self, size, name="weights"):
+        return tf.Variable(tf.truncated_normal(
+            shape=size,
+            stddev=0.1), 
+            name=name)
+
+    def make_bias(self, size, name="bias"):
+        return tf.Variable(tf.constant(
+            self.network_params['INITIAL_BIAS'],
+            shape=size), 
+            name=name)
+
+    def make_conv(self, previous_layer, weight):
+        return tf.nn.conv2d(previous_layer, weight, strides=[1, 1, 1, 1], padding='SAME')
+
+    def max_pool_2x2(self, previous_layer):
+        return tf.nn.max_pool(previous_layer, ksize=[1, 2, 2, 1],
+            strides=[1, 2, 2, 1], padding='SAME')
 
     def __init__(self, env, 
             training_params = None, 
@@ -37,40 +60,56 @@ class NeuralNetwork:
         if network_params:
             self.network_params = network_params
 
+
         # this setup currently targets environments with a 
         # Box observation_space and Discrete actions_space
-        self.input_size = self.env.observation_space.shape[0]
+        #self.input_size = self.env.observation_space.shape[0]
         self.output_size = self.env.action_space.n
 
-        self.input_layer = tf.placeholder(tf.float32, [None, self.input_size])
+        self.input_layer = tf.placeholder(tf.float32, [None] + list(self.env.observation_space.shape))
         self.layer_list = [self.input_layer]
         self.weight_list = []
-        
+
         # build network
-        layer_map = [self.input_size] + \
-            self.network_params['HIDDEN_LAYER_LIST'] + [self.output_size]
-        for layer_number, layer_size in enumerate(layer_map[1:], start=1):
-            with tf.name_scope('layer'+ str(layer_number)):
-                previous_size = layer_map[layer_number - 1]
-                
-                weight = tf.Variable(tf.truncated_normal(
-                    [layer_size, previous_size], stddev=0.1), 
-                    name=("weights" + str(layer_number)))
-                bias = tf.Variable(tf.constant(
-                    self.network_params['INITIAL_BIAS'],
-                    shape=[layer_size]), 
-                    name=("bias" + str(layer_number)))
+
+        #build conv network
+        if len(self.layer_list[-1].get_shape()) > 3:
+            conv_layer_list = self.network_params["CONV_LAYER_LIST"]
+            for layer_number, layer_info in enumerate(conv_layer_list):
+                with tf.name_scope('conv_layer' + str(layer_number)):
+                    patch_size, features = layer_info
+                    conv_depth = int(self.layer_list[-1].get_shape()[3])
+                    weight = self.make_weights(patch_size+[conv_depth,features])
+                    bias = self.make_bias([features])
+                    conv = tf.nn.relu(self.make_conv(self.layer_list[-1], weight) + bias)
+                    self.layer_list.append(self.max_pool_2x2(conv))
+
+
+        #build relu layers
+        relu_layer_list = self.network_params["RELU_LAYER_LIST"] + [self.output_size]
+        for layer_number, layer_size in enumerate(relu_layer_list):
+            with tf.name_scope('relu_layer'+ str(layer_number)):
+                #flatten network if not yet flattened
+                if len(self.layer_list[-1].get_shape()) > 2:
+                    previous_layer = self.layer_list[-1]
+                    flat_size = int(reduce(lambda x,y : x*y, previous_layer.get_shape()[1:]))
+                    self.layer_list.append(
+                            tf.reshape(previous_layer, [-1, flat_size]))
+
+                previous_size = int(self.layer_list[-1].get_shape()[1])
+                weight = self.make_weights([layer_size, previous_size], "weights" + str(layer_number))
+                bias = self.make_bias([layer_size],("bias" + str(layer_number)))
 
                 self.layer_list.append(tf.matmul(
                     self.layer_list[-1], tf.transpose(weight)) + bias)
+                
+                self.Q = self.layer_list[-1]
 
-                if layer_number != len(layer_map) - 1:
-                    self.layer_list[-1] = tf.nn.relu(self.layer_list[-1],
-                            name = ("layernode"+ str(layer_number)))
-                else:
-                    self.Q = self.layer_list[-1]
+                self.layer_list[-1] = tf.nn.relu(self.layer_list[-1],
+                    name = ("layernode"+ str(layer_number)))
 
                 self.weight_list.append(weight)
+
 
         with tf.name_scope('Q_learning'):
             self.target_q_placeholder = tf.placeholder(tf.float32, [None])
@@ -182,10 +221,9 @@ class NeuralNetwork:
                 print "Episode ", i_episode, "\tScore ", score
 
 def main():
-    #game = "Acrobot-v0"
+    #game = "Pendulum-v0"
     #game = "MountainCar-v0"
     game = "CartPole-v0"
-    hidden_layer_list = [100,100]
     env = gym.make(game)
     #env.monitor.start('/tmp/cartpole-experiment-1')
     nn = NeuralNetwork(env)
