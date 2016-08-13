@@ -15,7 +15,7 @@ import random
 class Layer:
 
     layer_description = ""
-
+    
     training_weight = None
     training_bias = None
 
@@ -60,7 +60,6 @@ class ConvolutionalLayerParams:
 # currently will only do conv layers with 2x2 pooling layers after
 # also will only take inputs with color broken out in a dimension
 class ConvolutionalLayer(Layer):
-
     def make_conv(self, previous_layer, weight, stride):
         return tf.nn.conv2d(previous_layer, weight, strides=[1, stride, stride, 1], padding='SAME')
 
@@ -85,7 +84,6 @@ class ConvolutionalLayer(Layer):
             self.target_output_layer = self.max_pool(target_conv)
             self.layer_description += "conv {} + {}    {}\npool {}\n".format(weight_size, bias_size, layer_params.name, layer_params.pool_size)
             
-
 class RELULayerParams:
     def __init__(self, neurons, name="relu_layer", skip_relu = False):
         self.neurons = neurons
@@ -190,7 +188,6 @@ class Neural_Network:
         return layer_list
 
     def train(self, training_params):
-
         score = 0
 
         if not training_params.sess:
@@ -220,12 +217,18 @@ class Neural_Network:
                 
                 # start off with mostly random actions
                 # slowly take away the random actions
-                if random.random() > self.random_chance:
-                    action = output.argmax()
-                else: 
+                #if random.random() > self.random_chance:
+                if i_episode < 500 \
+                        or np.random.random() < self.random_chance:
                     action = self.env.action_space.sample()
+                else: 
+                    action = output.argmax()
                   
                 newobs, reward, done, info = self.env.step(action)
+                #if show_display and i_episode % 10 == 0:
+                #    print "obs", newobs
+                #    print "reward", reward
+                #    print "q",output
 
                 score += reward
                 self.memory.append([obs, action, reward, newobs, done])

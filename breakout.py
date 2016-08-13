@@ -4,6 +4,7 @@ import gym
 def main():
     game = "Breakout-v0"
     env = gym.make(game)
+<<<<<<< HEAD
     #env.monitor.start('/tmp/2lunar-lander-v2')
 
 
@@ -28,8 +29,11 @@ def main():
 
     training_params = deep_q.Training_Params()
     training_params.max_episode = 100000000
-    training_params.max_step = 10000
+    training_params.max_step = 999
     training_params.show_freq = 1
+    training_params.memory_size = 200000
+    training_params.batch_size = 64
+    training_params.random_decay = .999
 
     nn.train(training_params)
     #env.monitor.close()
