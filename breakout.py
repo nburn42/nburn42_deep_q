@@ -24,6 +24,26 @@ def main():
     layer_param_list.append(
             deep_q.RELULayerParams(neurons=100, name="relu2"))
 
+    value_param_list = []
+
+    value_param_list.append(
+        deep_q.RELULayerParams(100, name="value1"))
+
+    value_param_list.append(
+        deep_q.RELULayerParams(100, name="value2"))
+
+    advantage_param_list = []
+
+    advantage_param_list.append(
+            deep_q.RELULayerParams(100, name="adv1"))
+
+    advantage_param_list.append(
+            deep_q.RELULayerParams(100, name="adv2"))
+
+    duel_layer_params = deep_q.DuelLayersParams()
+    duel_layer_params.value_layers = value_param_list
+    duel_layer_params.advantage_layers = advantage_param_list
+    
     nn = deep_q.DuelDualQ(env, layer_param_list)
 
     training_params = deep_q.Training_Params()
