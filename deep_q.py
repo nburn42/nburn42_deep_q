@@ -125,10 +125,10 @@ class DuelLayersParams:
 
 class Training_Params:
     def __init__(self):
-        self.initial_random_chance = 0.9
-        self.random_decay = 0.9935
-        self.discount_rate = 0.97
-        self.memory_size = 50000
+        self.initial_random_chance = 1.
+        self.random_decay = 0.9925
+        self.discount_rate = 0.95
+        self.memory_size = 10000
         self.train_freq = 8
         self.batch_size = 128
         self.update_param_freq = 32
@@ -169,13 +169,15 @@ class Neural_Network:
                 layer_list.append(layer.get_output_layer())
                 self.description += layer.get_description()
             elif isinstance(layer_params, DuelLayersParams):
+                prev_layer = layer_list[-1]
+
                 self.description += "Value Network \n"
                 value_list = self._build_layers(
-                        layer_list, layer_params.value_layers)
+                        [prev_layer], layer_params.value_layers)
 
                 self.description += "Advantage Network \n"
                 advantage_list = self._build_layers(
-                        layer_list, layer_params.advantage_layers)
+                        [prev_layer], layer_params.advantage_layers)
 
                 self.description += "Value + Avgerage Advantage\n"
                 training_output_layer = value_list[-1][0] + (advantage_list[-1][0] - 
@@ -218,17 +220,12 @@ class Neural_Network:
                 # start off with mostly random actions
                 # slowly take away the random actions
                 #if random.random() > self.random_chance:
-                if i_episode < 500 \
-                        or np.random.random() < self.random_chance:
+                if np.random.random() < self.random_chance:
                     action = self.env.action_space.sample()
                 else: 
                     action = output.argmax()
                   
                 newobs, reward, done, info = self.env.step(action)
-                #if show_display and i_episode % 10 == 0:
-                #    print "obs", newobs
-                #    print "reward", reward
-                #    print "q",output
 
                 score += reward
                 self.memory.append([obs, action, reward, newobs, done])
@@ -241,13 +238,13 @@ class Neural_Network:
                 # update environment
                 obs = newobs
 
+                if self.tick % training_params.train_freq == 0:
+                    self.minibatch(training_params)
+           
                 if self.tick % training_params.update_param_freq == 0:
                     for layer in self.layer_model_list:
                         layer.update_target(self.sess)
 
-                if self.tick % training_params.train_freq == 0:
-                    self.minibatch(training_params)
-           
             # slowly take away the random exploration
             self.random_chance *= training_params.random_decay
 
@@ -338,25 +335,16 @@ def main():
     layer_param_list.append(
         RELULayerParams(100, name="hl1"))
 
-    #layer_param_list.append(
-    #    RELULayerParams(50, name="hl2"))
-    
     value_param_list = []
     
     value_param_list.append(
         RELULayerParams(10, name="value1"))
     
-    #value_param_list.append(
-    #    RELULayerParams(100, name="value2"))
-
     advantage_param_list = []
 
     advantage_param_list.append(
             RELULayerParams(100, name="adv1"))
     
-    #advantage_param_list.append(
-    #        RELULayerParams(100, name="adv2"))
-
     duel_layer_params = DuelLayersParams()
     duel_layer_params.value_layers = value_param_list
     duel_layer_params.advantage_layers = advantage_param_list
