@@ -242,6 +242,7 @@ class Neural_Network:
                     self.minibatch(training_params)
            
                 if self.tick % training_params.update_param_freq == 0:
+                    print "updating target network"
                     for layer in self.layer_model_list:
                         layer.update_target(self.sess)
 
@@ -249,7 +250,7 @@ class Neural_Network:
             self.random_chance *= training_params.random_decay
 
             # how did we do?
-            print "Episode ", i_episode, "\tScore ", score, "\tRandom ", self.random_chance
+            print "Episode ", i_episode, "\tScore ", score, "\tRandom ", self.random_chance, "\ttick ", self.tick
 
     def minibatch(self, training_params):
         # learn a batch of runs

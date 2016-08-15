@@ -4,7 +4,7 @@ import gym
 def main():
     game = "Breakout-v0"
     env = gym.make(game)
-    #env.monitor.start('/tmp/2lunar-lander-v2')
+    env.monitor.start('/tmp/breakout')
 
 
     layer_param_list = []
@@ -43,6 +43,8 @@ def main():
     duel_layer_params = deep_q.DuelLayersParams()
     duel_layer_params.value_layers = value_param_list
     duel_layer_params.advantage_layers = advantage_param_list
+
+    layer_param_list.append(duel_layer_params)
     
     nn = deep_q.DuelDualQ(env, layer_param_list)
 
@@ -50,14 +52,14 @@ def main():
     training_params.max_episode = 100000000
     training_params.max_step = 999
     training_params.show_freq = 5
-    training_params.memory_size = 200000
+    training_params.memory_size = 20000
     training_params.train_freq = 64
-    training_params.batch_size = 256
+    training_params.batch_size = 150
     training_params.random_decay = .9995
     training_params.update_param_freq = 10000
 
     nn.train(training_params)
-    #env.monitor.close()
+    env.monitor.close()
 
 if __name__ == "__main__":
     main()
