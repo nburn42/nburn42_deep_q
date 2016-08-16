@@ -14,8 +14,6 @@ import random
 import neural_network
 import gym_runner
 
-        
-
 def main():
     #game = "Pendulum-v0"
     #game = "MountainCar-v0"
