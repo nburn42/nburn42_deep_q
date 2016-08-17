@@ -12,11 +12,16 @@ class Layer:
 
     layer_description = ""
     
-    training_weight = None
-    training_bias = None
 
-    target_weight = None
-    target_bias = None
+    def __init__(self):
+        self.weight_image_list = []
+        self.bias_image_list = []
+        training_weight = None
+        training_bias = None
+
+        target_weight = None
+        target_bias = None
+
 
     def make_weights(self, size):
         return tf.Variable(tf.truncated_normal(
@@ -43,9 +48,26 @@ class Layer:
     def get_description(self):
         return self.layer_description
 
-    def get_weight_image_summary(self):
-        return (tf.image_summary(self.name + "w", self._format_weight(self.training_weight), max_images=100), 
-                tf.image_summary(self.name + "b", self._format_weight(self.training_bias), max_images=100))
+    def add_weight_image(self):
+        new_tensor_weight = tf.identity(self._format_weight(self.training_weight))
+        new_tensor_bias = tf.identity(self._format_weight(self.training_bias))
+
+        self.weight_image_list.append(new_tensor_weight)
+        self.bias_image_list.append(new_tensor_bias)
+
+
+    def add_image_summary(self, sess, summary_writer, ticks):
+
+        print "image count ", len(self.weight_image_list)
+        combined_weight_image_tensor = tf.concat(0, self.weight_image_list)
+        combined_bias_image_tensor = tf.concat(0, self.bias_image_list)
+
+        summaries = [tf.image_summary(self.name + "w", combined_weight_image_tensor, max_images=len(self.weight_image_list)), 
+                tf.image_summary(self.name + "b", combined_bias_image_tensor, max_images=len(self.bias_image_list))]
+
+        wsummary, bsummary = sess.run(summaries)
+        summary_writer.add_summary(wsummary, ticks)
+        summary_writer.add_summary(bsummary, ticks)
 
     def _format_weight(self, tensor):
         newtensor = tensor
@@ -79,6 +101,7 @@ class ConvolutionalLayer(Layer):
             strides=[1, patch_size, patch_size, 1], padding='SAME')
         
     def __init__(self, prev_layer, layer_params):
+        Layer.__init__(self)
         self.training_input_layer, self.target_input_layer =prev_layer
         self.name = layer_params.name
         with tf.name_scope(layer_params.name):
@@ -106,6 +129,7 @@ class RELULayerParams:
 class RELULayer(Layer):
 
     def __init__(self, prev_layer, layer_params):
+        Layer.__init__(self)
         self.training_input_layer, self.target_input_layer = prev_layer
         self.name = layer_params.name
         with tf.name_scope(layer_params.name):
@@ -147,6 +171,8 @@ class Deep_Q_Params:
         self.train_freq = 8
         self.batch_size = 128
         self.update_param_freq = 128
+        self.summary_location = "summary"
+        self.image_summary_freq = 1000
 
 class Deep_Q:
     def __init__(self, deep_q_params):
@@ -182,9 +208,9 @@ class Deep_Q:
 
                 self.description += "Value + Avgerage Advantage\n"
                 training_output_layer = value_list[-1][0] + (advantage_list[-1][0] - 
-                  tf.reduce_mean(advantage_list[-1][0], reduction_indices=1, keep_dims=True))
+                    tf.reduce_mean(advantage_list[-1][0], reduction_indices=1, keep_dims=True))
                 target_output_layer = value_list[-1][1] + (advantage_list[-1][1] - 
-                  tf.reduce_mean(advantage_list[-1][1], reduction_indices=1, keep_dims=True))
+                    tf.reduce_mean(advantage_list[-1][1], reduction_indices=1, keep_dims=True))
                 layer_list.append([training_output_layer, target_output_layer])
 
 
@@ -241,11 +267,9 @@ class Deep_Q:
 
 
         tf.scalar_summary("loss", self.loss)
-        for layer in self.layer_model_list:
-            layer.get_weight_image_summary()
 
         self.summary = tf.merge_all_summaries()
-        self.summary_writer = tf.train.SummaryWriter('deepq', self.sess.graph)
+        self.summary_writer = tf.train.SummaryWriter(self.params.summary_loaction, self.sess.graph)
         sess.run(tf.initialize_all_variables())
 
     def get_action(self, obs):
@@ -265,6 +289,11 @@ class Deep_Q:
         if self.tick % self.params.update_param_freq == 0:
             for layer in self.layer_model_list:
                 layer.update_target(self.sess)
+        
+        if self.tick % self.params.image_summary_freq == 0:
+            for layer in self.layer_model_list:
+                layer.add_weight_image()
+
 
         self.tick += 1
 
@@ -305,3 +334,7 @@ class Deep_Q:
         if self.tick % 100 == 0:
             self.summary_writer.add_summary(summary, self.tick)
 
+
+    def done(self):
+        for layer in self.layer_model_list:
+            layer.add_image_summary(self.sess, self.summary_writer, self.tick)

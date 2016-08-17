@@ -1,4 +1,5 @@
-import deep_q
+import neural_network
+import gym_runner
 import gym
 
 def main():
@@ -7,63 +8,59 @@ def main():
     #game = "CartPole-v0"
     game = "LunarLander-v2"
     env = gym.make(game)
-    #env.monitor.start('/tmp/lunar-lander-v2')
+    env.monitor.start('/tmp/lunar-lander-v2')
+
     layer_param_list = []
     
-    #layer_param_list.append(
-    #        deep_q.ConvolutionalLayerParams(patch_size=8, stride=4, features=32, pool_size=2,  name="conv1"))
-    
-    #layer_param_list.append(
-    #        deep_q.ConvolutionalLayerParams(patch_size=4,  stride=2, features=64, pool_size=2, name="conv2"))
-
-    #layer_param_list.append(
-    #        deep_q.ConvolutionalLayerParams(patch_size=3, stride=1, features=64, pool_size=2, name="conv3"))
-    
     layer_param_list.append(
-            deep_q.RELULayerParams(neurons=100, name="relu1"))
+            neural_network.RELULayerParams(neurons=100, name="relu1"))
 
     layer_param_list.append(
-            deep_q.RELULayerParams(neurons=100, name="relu2"))
+            neural_network.RELULayerParams(neurons=100, name="relu2"))
 
     layer_param_list.append(
-            deep_q.RELULayerParams(neurons=100, name="relu3"))
+            neural_network.RELULayerParams(neurons=100, name="relu3"))
 
     value_param_list = []
     
     value_param_list.append(
-        deep_q.RELULayerParams(100, name="value1"))
+        neural_network.RELULayerParams(100, name="value1"))
     
     value_param_list.append(
-        deep_q.RELULayerParams(100, name="value2"))
+        neural_network.RELULayerParams(100, name="value2"))
 
     advantage_param_list = []
 
     advantage_param_list.append(
-            deep_q.RELULayerParams(100, name="adv1"))
+            neural_network.RELULayerParams(100, name="adv1"))
     
     advantage_param_list.append(
-            deep_q.RELULayerParams(100, name="adv2"))
+            neural_network.RELULayerParams(100, name="adv2"))
 
-    duel_layer_params = deep_q.DuelLayersParams()
+    duel_layer_params = neural_network.DuelLayersParams()
     duel_layer_params.value_layers = value_param_list
     duel_layer_params.advantage_layers = advantage_param_list
     
     layer_param_list.append(duel_layer_params)
+    
+    params = neural_network.Deep_Q_Params()
+    params.env = env
+    params.layer_param_list = layer_param_list
+    params.train_freq = 64
+    params.batch_size = 2000
+    params.update_param_freq = 1000
 
-    nn = deep_q.DuelDualQ(env, layer_param_list)
+    nn = neural_network.Deep_Q(params)
 
-    training_params = deep_q.Training_Params()
-    training_params.max_episode = 100000000
-    training_params.max_step = 999
-    training_params.show_freq = 10
-    training_params.memory_size = 200000
-    training_params.random_decay = .999
-    training_params.train_freq = 64
-    training_params.batch_size = 1024
-    training_params.update_param_freq = 1000
+    params = gym_runner.Training_Params()
+    params.max_episode = 100000000
+    params.max_step = 999
+    params.show_freq = 10
+    params.memory_size = 200000
+    params.random_decay = .999
 
-    nn.train(training_params)
-    #env.monitor.close()
+    gym_runner.Gym_Runner(env, nn).train(params)
+    env.monitor.close()
 
 if __name__ == "__main__":
     main()

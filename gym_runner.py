@@ -57,8 +57,6 @@ class Gym_Runner:
                 else: 
                     action = self.actor.get_action(obs)
                   
-                # slowly take away the random exploration
-                self.random_chance *= training_params.random_decay
 
                 newobs, reward, done, info = self.env.step(action)
 
@@ -73,4 +71,6 @@ class Gym_Runner:
 
             # how did we do?
             print "Episode ", i_episode, "\tScore ", score, "\tRandom ", self.random_chance
-
+            # slowly take away the random exploration
+            self.random_chance *= training_params.random_decay
+        self.actor.done()

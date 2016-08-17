@@ -45,14 +45,17 @@ def main():
     params = neural_network.Deep_Q_Params()
     params.env = env
     params.layer_param_list = layer_param_list
+    params.summary_loaction = "balancing_summary"
 
-    nn = neural_network.Deep_Q(params)
+    with tf.device('/cpu:0'):
+        nn = neural_network.Deep_Q(params)
 
-    training_params = gym_runner.Training_Params()
+        training_params = gym_runner.Training_Params()
+        training_params.max_episode = 100
 
-    runner = gym_runner.Gym_Runner(env, nn)
+        runner = gym_runner.Gym_Runner(env, nn)
 
-    runner.train(training_params)
+        runner.train(training_params)
     #env.monitor.close()
 
 
