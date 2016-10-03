@@ -46,12 +46,19 @@ def main():
     params.env = env
     params.layer_param_list = layer_param_list
     params.summary_loaction = "balancing_summary"
+    params.train_freq = 32
+    params.batch_size = 500
+    params.update_param_freq = 128
+    params.learning_rate = 1e-1
+    params.memory_size = 100000
 
     with tf.device('/cpu:0'):
         nn = neural_network.Deep_Q(params)
 
         training_params = gym_runner.Training_Params()
-        training_params.max_episode = 100
+        training_params.max_episode = 300
+        training_params.max_step = 199
+        training_params.random_decay = 0.995
 
         runner = gym_runner.Gym_Runner(env, nn)
 

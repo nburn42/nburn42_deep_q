@@ -77,8 +77,8 @@ class Layer:
             newtensor = tf.expand_dims(tensor,0)
         while(newtensor.get_shape().ndims < 4):
             newtensor = tf.expand_dims(newtensor, -1)
-        print self.name
-        print newtensor.get_shape()
+        #print self.name
+        #print newtensor.get_shape()
         return newtensor
 
 class ConvolutionalLayerParams:
@@ -166,13 +166,13 @@ class Deep_Q_Params:
         self.env = None
         self.layer_param_list = None
         self.memory_size = 10000
-        self.discount_rate = 0.95
-        self.memory_size = 10000
-        self.train_freq = 8
-        self.batch_size = 128
+        self.discount_rate = 0.99
+        self.train_freq = 32
+        self.batch_size = 1024
         self.update_param_freq = 128
         self.summary_location = "summary"
         self.image_summary_freq = 1000
+        self.learning_rate = 1e-2
 
 class Deep_Q:
     def __init__(self, deep_q_params):
@@ -217,6 +217,7 @@ class Deep_Q:
         return layer_list
 
     def build(self, sess):
+        print "Build Network"
         self.sess = sess
         # this setup currently targets environments with a 
         # Box observation_space and Discrete actions_space
@@ -260,7 +261,7 @@ class Deep_Q:
         
         #Adam has a built in learnig rate decay
         self.train_node = tf.train.AdamOptimizer(
-                1e-3).minimize(self.loss)
+                self.params.learning_rate).minimize(self.loss)
 
         self.memory = []
         self.tick = 0
