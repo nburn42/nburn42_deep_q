@@ -56,7 +56,7 @@ def main():
         nn = neural_network.Deep_Q(params)
 
         training_params = gym_runner.Training_Params()
-        training_params.max_episode = 300
+        training_params.max_episode = 500
         training_params.max_step = 199
         training_params.random_decay = 0.995
 
