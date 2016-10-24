@@ -12,11 +12,11 @@ class SuperLayer:
     input_action_size = 3
     loss_size = 1
     #value_size = 1
-    rep_buleprint = [5]
-    model_buleprint = [5, 5]
-    actor_blueprint = [5, 5]
-    q_blueprint = [5, 5]
-    attention_blueprint = [5]
+    rep_buleprint = [41]
+    model_buleprint = [48, 49]
+    actor_blueprint = [20, 15]
+    q_blueprint = [15, 22]
+    attention_blueprint = [21,23]
     #goal_attention_blueprint = [10]
     #state_memory_size = []
     loss = {}
@@ -239,7 +239,7 @@ if __name__ == '__main__':
                 if explore > np.random.uniform():
                     action[0][0] =  env.action_space.sample()
         
-                explore *= .9995
+                explore *= .99999
 
                 #raw_action = (action[0][0] + env.action_space.low) * (
                 #        env.action_space.high - env.action_space.low)
